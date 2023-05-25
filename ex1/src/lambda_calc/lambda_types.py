@@ -27,14 +27,7 @@ class TypeInference:
         self._next_type_var_id = 0
         self._expr = expr.clone()
         self._assign_type_vars()
-        # for n in PreorderWalk(expr):
-        #     print('EXPR: ', n, 'TYPE: ', self._type_assignments.get(n))
         self._build_and_solve_constraints()
-        # print(self._get_constraint(self._expr))
-        print(self._constraints)
-        # if any([any(t[0] == 'T' for t in self._constraints[type_var].terminals) for type_var in self._constraints]):
-        # # if any([t[0] == 'T' for t in self._get_constraint(self._expr).terminals]):
-        #     raise TypeError('insufficient type annotations')
         self._expr_type = self._get_constraint(self._expr).clone()
         self._annotate_expr()
 
@@ -75,7 +68,7 @@ class TypeInference:
     def _get_next_type_var(self):
         type_var = f"T{self._next_type_var_id}"
         self._next_type_var_id += 1
-        return type_var  # Tree('id', [Tree(type_var, [])])
+        return type_var
 
     def _assign_type_vars(self):
         def assign_rec(expr, env: dict):
@@ -142,7 +135,7 @@ class TypeInference:
                 return type_assignment + ty_ass
 
         self._constraints = dict()
-        self._type_assignments = assign_rec(self._expr, {})  # CONSTANTS.copy())
+        self._type_assignments = assign_rec(self._expr, {})
         self._type_assignments = TypeAssignment(self._type_assignments)
 
     def _admit_equiv(self, type_var, ty: Tree):
@@ -169,8 +162,6 @@ class TypeInference:
 
         if equal_types:
             return
-
-        # unified = False
 
         if t1.root == 'id' and t1.subtrees[0].root[0] == 'T' and t2.root == 'id' and t2.subtrees[0].root[0] == 'T':
             if self._constraints.get(t1.subtrees[0].root) is None:
@@ -199,8 +190,6 @@ class TypeInference:
             return t2.clone()
 
         if t2.root == 'id' and t2.subtrees[0].root[0] == 'T':
-            # self._constraints[t2.subtrees[0].root] = t1.clone()
-            # self._admit_equiv(t2.subtrees[0].root, t1)
             return self._unify(t2, t1)
 
         if t1.root == '->' and t2.root == '->':
@@ -208,7 +197,6 @@ class TypeInference:
             ret_type = self._unify(t1.subtrees[1], t2.subtrees[1])
             return Tree('->', [arg_type, ret_type])
 
-        # if not unified:
         raise TypeError('type mismatch')
 
     def _get_constraint(self, expr: Tree):
@@ -243,7 +231,6 @@ class TypeInference:
             if type_var is None:
                 return
 
-            # print('type_var: ', type_var)
             if self._constraints.get(type_var) is None:
                 self._unify(Tree('id', [Tree(type_var, [])]), constraint)
 
@@ -269,75 +256,17 @@ def type_inference(expr: Tree) -> (Tree, Tree):
 
 
 if __name__ == '__main__':
-    # expr0 = LambdaParser()(r"""
-    # let add2 = \x. plus x 2 in
-    # \f. succ (f True add2)
-    # """)
     expr = LambdaParser()(r"""
-    let first = \(x : nat) (y : int). x in 
-                            let x = \a. (first 5 a) in
-                            \(h : ty -> tz) g f. h (g (f (f x)))
+    let add2 = \x. plus x 2 in
+    \f. succ (f True add2)
     """)
 
-    expr = LambdaParser()(r"""
-    \(x : int) (f : nat -> whatever). f (g 3 x)
-    """)
-
-    expr = LambdaParser()(r"""\f : nat -> whatever. f (g 3 x)""")
-
-    expr = LambdaParser()(r"""
-    \f g (a : real) (z : unreal). f (g a z) (f 5 a)
-    """)
-
-    expr = LambdaParser()(r"""
-    let first = \(x : nat) (y : int). x in 
-    let x = \a. (first 5 a) in
-    \(h : ty -> tz) g f. h (g (f (f x)))
-    """)
-
-    # expr = LambdaParser()(r"""
-    # x
-    # """)
-
-    print(pretty(type_inference(expr)[0]))
-    print(pretty(type_inference(expr)[1]))
-
-    expr1 = LambdaParser()(r"""
-    \f g (a : real) (z : unreal). f (g a z) (f 5 a)
-    """)
-
-    expr2 = LambdaParser()(r"""
-    \plus (lt : nat -> nat -> bool). lt ((\x. plus x x) 3) ((\x. plus 5 x) 9)
-    """)
-
-    expr3 = LambdaParser()(r"""
-    let add2 = \(x:nat) (y:ty). plus x 2 in
-                \f. succ (f True add2)
-    """)
-    print(pretty(type_inference(expr3)[0]))
-
-    out1 = LambdaParser()(r"""
-    \(f : nat -> (real -> real)) (g : real -> (unreal -> nat)) (a : real) (z : unreal). f (g a z) (f 5 a)
-    """)
-
-    out2 = LambdaParser()(r"""
-    \(plus : nat -> nat -> nat) (lt : nat -> nat -> bool). lt ((\(x : nat). plus x x) 3) ((\(x : nat). plus 5 x) 9)
-    """)
-
-    exprs = [expr1, expr2]
-    outs = [out1, out2]
-
-    for expr, out in zip(exprs, outs):
-        if expr:
-            print(">> Valid expression.")
-            print(pretty(expr))
-            # print(type_inference(expr))
-            print(pretty(type_inference(expr)[0]))
-            print(pretty(out))
-            print(pretty(out) == pretty(type_inference(expr)[0]))
-            print(pretty(type_inference(expr)[1]))
-            # from lib.adt.tree.viz import dot_print
-            # dot_print(expr)
-            # dot_print(type_inference(expr)[0])
-        else:
-            print(">> Invalid expression.")
+    if expr:
+        print(">> Valid expression.")
+        print(pretty(expr))
+        print(type_inference(expr))
+        # from lib.adt.tree.viz import dot_print
+        # dot_print(expr)
+        # dot_print(type_inference(expr)[0])
+    else:
+        print(">> Invalid expression.")
