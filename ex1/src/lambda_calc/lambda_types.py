@@ -91,7 +91,7 @@ class TypeInference:
                     return [(expr, env[var])]
                 if var in TypeInference.USED_CONSTANTS:
                     type_var = self._get_next_type_var()
-                    self._constraints[type_var] = CONSTANTS[var]
+                    self._constraints[type_var] = TypeInference.USED_CONSTANTS[var]
                     return [(expr, type_var)]
                 return [(expr, self._get_next_type_var())]
 
